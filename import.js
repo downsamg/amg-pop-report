@@ -13,12 +13,14 @@ async function importData() {
     const db = client.db('grading_db');
     const collection = db.collection('items');
     
-    // Read your JSON file
+    // IMPORTANT: Clear existing data first
+    console.log('🗑️  Clearing existing data...');
+    await collection.deleteMany({});
+    
     console.log('📖 Reading data.json...');
     const data = JSON.parse(fs.readFileSync('data.json', 'utf8'));
     console.log(`📊 Found ${data.length} records`);
     
-    // Transform the data to clean it up
     console.log('🔄 Transforming data...');
     const cleanedData = data.map(item => ({
       // IDs
@@ -36,37 +38,21 @@ async function importData() {
       // Item Info
       itemType: item.type || 'Unknown',
       universe: item.ToyUniverse,
-      series: item.ToySeries,
+      series: item.ToySeries,  // THIS IS THE KEY FIELD!
       manufacturer: item.ToyManuf,
       
-      // Vinyl-specific data (if exists)
-      vinyl: item.artist ? {
-        artist: item.artist,
-        album: item.album,
-        label: item.label,
-        catalogNum: item.catnum,
-        releaseYear: item.ryear,
-        tier: item.tier,
-        size: item.size,
-        speed: item.speed,
-        discogID: item.discogid,
-        firstPress: item.firstpress === 'TRUE',
-        promo: item.promo === 'TRUE',
-        description: item.toydesc
-      } : null,
+      // Pop Report fields
+      artistPopReport: item.Artist_PopReport,
+      albumPopReport: item.Album_PopReport,
+      
+      // Vinyl-specific data
+      label: item.label,
+      releaseYear: item.ryear,
+      tier: item.tier,
       
       // Dates
       dateEntered: item.DateEntered ? new Date(item.DateEntered) : null,
       gradeDate: item.GradeDate ? new Date(item.GradeDate) : null,
-      
-      // Search field (combined text for easy searching)
-      searchText: [
-        item.artist,
-        item.album,
-        item.label,
-        item.ToyManuf,
-        item.toydesc
-      ].filter(Boolean).join(' ').toLowerCase(),
       
       // Flags
       approved: item.approved === 'TRUE',
@@ -74,17 +60,15 @@ async function importData() {
       exportToWeb: item.ExportToWeb === 'TRUE'
     }));
     
-    // Insert into MongoDB
     console.log('📤 Uploading to MongoDB...');
     const result = await collection.insertMany(cleanedData);
     console.log(`✅ Imported ${result.insertedCount} records!`);
     
-    // Create search indexes
     console.log('🔄 Creating search indexes...');
-    await collection.createIndex({ searchText: 'text' });
+    await collection.createIndex({ artistPopReport: 1 });
+    await collection.createIndex({ albumPopReport: 1 });
+    await collection.createIndex({ series: 1 });
     await collection.createIndex({ masterGrade: 1 });
-    await collection.createIndex({ 'vinyl.artist': 1 });
-    await collection.createIndex({ itemType: 1 });
     
     console.log('✅ Created search indexes!');
     console.log('🎉 Import complete!');

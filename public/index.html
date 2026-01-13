@@ -6,8 +6,7 @@
     <title>AMG Population Report</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
+    <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;700&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -16,65 +15,78 @@
         }
 
         body {
-            font-family: 'Hanken Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: 'Hanken Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: #F8F7F3;
-            color: #111111;
+            min-height: 100vh;
+            position: relative;
         }
 
         /* Header */
         .header {
             display: flex;
+            flex-direction: row;
             justify-content: space-between;
             align-items: center;
             padding: 20px 48px;
             background: #F8F7F3;
             box-shadow: 0px 4px 25px rgba(0, 0, 0, 0.15);
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
 
-        .nav-left {
+        .nav-links {
             display: flex;
-            gap: 40px;
+            flex-direction: row;
             align-items: center;
+            gap: 40px;
         }
 
-        .nav-left a {
+        .nav-links a {
+            font-weight: 400;
             font-size: 18px;
+            line-height: 120%;
             letter-spacing: 1px;
             color: #252422;
             text-decoration: none;
         }
 
-        .nav-left a.active {
+        .nav-links a.active {
             text-decoration: underline;
         }
 
-        .logo {
+        .logo-section {
             display: flex;
             align-items: center;
+            gap: 10px;
         }
 
-        .logo img {
-            height: 48px;
-        }
-
-        .nav-right {
+        .header-actions {
             display: flex;
+            align-items: center;
             gap: 16px;
-            align-items: center;
         }
 
         .submit-btn {
+            display: flex;
+            justify-content: center;
+            align-items: center;
             padding: 16px 24px;
             border: 1px solid #252422;
             border-radius: 1000px;
             background: transparent;
             font-family: 'Hanken Grotesk';
+            font-weight: 400;
             font-size: 18px;
             letter-spacing: 2px;
             color: #252422;
             cursor: pointer;
-            text-decoration: none;
-            display: inline-block;
+            transition: all 0.3s;
+        }
+
+        .submit-btn:hover {
+            background: #252422;
+            color: #F8F7F3;
         }
 
         .profile-circle {
@@ -82,17 +94,18 @@
             height: 48px;
             background: #FBF796;
             border: 1px solid #252422;
-            border-radius: 50%;
+            border-radius: 1000px;
             display: flex;
             align-items: center;
             justify-content: center;
+            font-weight: 400;
             font-size: 18px;
             letter-spacing: 2px;
             color: #252422;
         }
 
         /* Hero Section */
-        .hero {
+        .hero-section {
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -101,40 +114,45 @@
             background: #EBEAE2;
         }
 
-        .hero h1 {
-            font-size: 64px;
+        .hero-title {
             font-weight: 700;
+            font-size: 64px;
             line-height: 120%;
-            letter-spacing: -0.02em;
             text-align: center;
+            letter-spacing: -0.02em;
             color: #111111;
             max-width: 1412px;
         }
 
         .hero-description {
+            font-weight: 400;
             font-size: 18px;
             line-height: 147%;
-            letter-spacing: 0.01em;
             text-align: center;
-            max-width: 824px;
+            letter-spacing: 0.01em;
             color: #100F0F;
+            max-width: 824px;
         }
 
-        /* Search Section */
+        /* Search Box */
         .search-container {
-            display: flex;
-            justify-content: center;
-            padding: 40px 0;
+            width: 100%;
+            max-width: 712px;
+            margin: -100px auto 60px;
+            position: relative;
+            z-index: 10;
         }
 
         .search-box {
             display: flex;
+            flex-direction: row;
+            justify-content: space-between;
             align-items: center;
-            width: 712px;
+            padding: 16px 11px 16px 24px;
+            gap: 8px;
             background: #FFFFFF;
             box-shadow: 0px 0px 19.2px rgba(0, 0, 0, 0.25);
             border-radius: 1000px;
-            padding: 16px 11px 16px 24px;
         }
 
         .search-input {
@@ -144,7 +162,6 @@
             font-family: 'Hanken Grotesk';
             font-size: 18px;
             color: #252422;
-            background: transparent;
         }
 
         .search-input::placeholder {
@@ -152,55 +169,60 @@
         }
 
         .search-button {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
             width: 44px;
             height: 44px;
             background: #252422;
+            border-radius: 1000px;
             border: none;
-            border-radius: 50%;
             cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            transition: all 0.3s;
         }
 
-        .search-button svg {
-            width: 24px;
-            height: 24px;
-            stroke: #FFFFFF;
-            fill: none;
+        .search-button:hover {
+            transform: scale(1.05);
+        }
+
+        .search-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
 
         /* Info Cards */
         .info-section {
-            display: flex;
-            justify-content: center;
-            gap: 50px;
-            padding: 80px 50px;
-            max-width: 1512px;
+            max-width: 1412px;
             margin: 0 auto;
+            padding: 60px 50px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 40px;
+        }
+
+        .info-section.hidden {
+            display: none;
         }
 
         .info-card {
             text-align: center;
-            max-width: 436px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
         }
 
         .info-icon {
-            width: 121px;
-            height: 121px;
-            margin: 0 auto 30px;
+            width: 106px;
+            height: 106px;
             display: flex;
             align-items: center;
             justify-content: center;
         }
 
-        .info-icon img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-        }
-
-        .info-card p {
+        .info-text {
+            font-weight: 400;
             font-size: 18px;
             line-height: 147%;
             letter-spacing: 0.01em;
@@ -209,27 +231,40 @@
 
         /* Results Section */
         .results-section {
-            max-width: 1400px;
-            margin: 40px auto;
-            padding: 0 50px;
+            max-width: 1412px;
+            margin: 0 auto;
+            padding: 0 50px 100px;
         }
 
-        .results-header {
-            margin-bottom: 30px;
+        .results-section.hidden {
+            display: none;
         }
 
-        .artist-name {
-            font-size: 48px;
+        .result-header {
+            margin-bottom: 40px;
+        }
+
+        .result-title {
             font-weight: 700;
+            font-size: 48px;
+            line-height: 120%;
+            letter-spacing: -0.02em;
             color: #111111;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
         }
 
+        .result-count {
+            font-weight: 400;
+            font-size: 18px;
+            color: #666;
+        }
+
+        /* Table Styles */
         .table-container {
             background: white;
             border-radius: 8px;
             overflow: hidden;
-            box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
 
         table {
@@ -237,176 +272,237 @@
             border-collapse: collapse;
         }
 
-        th {
+        thead {
             background: #252422;
             color: #F8F7F3;
-            padding: 16px;
+        }
+
+        th {
+            padding: 16px 12px;
             text-align: left;
             font-weight: 600;
             font-size: 14px;
-            letter-spacing: 0.5px;
             text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         th:first-child {
-            padding-left: 24px;
+            min-width: 300px;
+        }
+
+        th:not(:first-child) {
+            text-align: center;
         }
 
         td {
-            padding: 16px;
-            border-bottom: 1px solid #EBEAE2;
-            font-size: 16px;
-            color: #252422;
+            padding: 16px 12px;
+            border-bottom: 1px solid #eee;
         }
 
-        td:first-child {
-            padding-left: 24px;
-            font-weight: 500;
+        tbody tr.album-row {
+            cursor: pointer;
+            transition: background 0.2s;
         }
 
-        tr:hover {
-            background: #F8F7F3;
+        tbody tr.album-row:hover {
+            background: #f0f0f0;
+        }
+
+        tbody tr.album-row.expanded {
+            background: #e8e8e8;
+        }
+
+        tbody tr.detail-row {
+            background: #fafafa;
+            display: none;
+        }
+
+        tbody tr.detail-row.visible {
+            display: table-row;
+        }
+
+        tbody tr.detail-row td {
+            padding-left: 40px;
+            font-size: 14px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        tbody tr.detail-row:last-of-type td {
+            border-bottom: 2px solid #ddd;
+        }
+
+        .album-name {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .expand-icon {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            transition: transform 0.3s;
+        }
+
+        .expand-icon.expanded {
+            transform: rotate(90deg);
+        }
+
+        .media-type-label {
+            color: #666;
+            font-style: italic;
         }
 
         .grade-cell {
             text-align: center;
-            font-weight: 600;
+            font-weight: 500;
             color: #999;
         }
 
         .grade-cell.has-count {
-            color: #252422;
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            color: #1976d2;
+            font-weight: 600;
         }
 
         .total-cell {
             font-weight: 700;
+            color: #252422;
             text-align: center;
+            font-size: 16px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px;
+            color: #666;
+            font-size: 18px;
+        }
+
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #c62828;
         }
 
         /* Footer */
         .footer {
             background: #252422;
             color: #F8F7F3;
-            padding: 60px 48px 40px;
-            margin-top: 80px;
+            padding: 80px 50px 40px;
+            margin-top: 120px;
+            border-top: 1px solid #B6B4A2;
         }
 
         .footer-content {
+            max-width: 1412px;
+            margin: 0 auto;
             display: grid;
             grid-template-columns: 2fr 1fr 1fr 1fr;
             gap: 60px;
-            max-width: 1512px;
-            margin: 0 auto 40px;
         }
 
         .footer-section h3 {
+            font-weight: 400;
+            font-size: 40px;
+            line-height: 149%;
+            letter-spacing: 0.02em;
+            margin-bottom: 20px;
+        }
+
+        .footer-section.small h4 {
+            font-weight: 400;
             font-size: 16px;
             letter-spacing: 0.08em;
             text-transform: uppercase;
             margin-bottom: 20px;
-            font-weight: 400;
         }
 
         .footer-section p {
+            font-weight: 400;
             font-size: 16px;
             line-height: 140%;
             letter-spacing: 0.02em;
             margin-bottom: 20px;
         }
 
-        .footer-section a {
-            display: block;
+        .footer-links {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .footer-links a {
+            font-weight: 400;
             font-size: 24px;
             line-height: 170%;
             color: #F8F7F3;
             text-decoration: none;
+            transition: opacity 0.3s;
         }
 
-        .footer-section a:hover {
-            text-decoration: underline;
+        .footer-links a:hover {
+            opacity: 0.7;
         }
 
-        .email-input {
+        .newsletter-form {
             display: flex;
             gap: 10px;
             margin-top: 20px;
         }
 
-        .email-input input {
+        .newsletter-input {
             flex: 1;
             padding: 12px 16px;
+            border: 1px solid #F8F7F3;
+            border-radius: 8px;
+            background: transparent;
+            color: #F8F7F3;
+            font-family: 'Helvetica Neue', sans-serif;
+            font-size: 14px;
+        }
+
+        .newsletter-input::placeholder {
+            color: #F8F7F3;
+        }
+
+        .newsletter-button {
+            padding: 12px 24px;
             background: transparent;
             border: 1px solid #F8F7F3;
             border-radius: 8px;
             color: #F8F7F3;
-            font-family: 'Hanken Grotesk';
-        }
-
-        .email-input input::placeholder {
-            color: rgba(248, 247, 243, 0.6);
-        }
-
-        .email-input button {
-            padding: 12px 24px;
-            background: #F8F7F3;
-            border: none;
-            border-radius: 8px;
-            color: #252422;
-            cursor: pointer;
-            font-family: 'Hanken Grotesk';
+            font-family: 'Helvetica Neue', sans-serif;
             font-weight: 500;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .newsletter-button:hover {
+            background: #F8F7F3;
+            color: #252422;
         }
 
         .footer-bottom {
+            max-width: 1412px;
+            margin: 60px auto 0;
             text-align: right;
-            font-size: 10.83px;
+            font-family: 'Inter', sans-serif;
+            font-size: 10.8px;
             opacity: 0.4;
-            padding-top: 40px;
-            border-top: 1px solid rgba(182, 180, 162, 0.3);
         }
 
-        .loading, .no-results {
-            text-align: center;
-            padding: 60px 20px;
-            color: #666;
-        }
-
-        /* Hide results initially */
-        #resultsSection {
-            display: none;
-        }
-
-        #loadingMessage {
-            display: none;
-        }
-
-        /* Responsive */
-        @media (max-width: 1024px) {
-            .header {
-                padding: 20px 24px;
-            }
-
-            .nav-left {
-                gap: 20px;
-            }
-
-            .nav-left a {
-                font-size: 16px;
-            }
-
-            .hero h1 {
-                font-size: 48px;
-            }
-
+        @media (max-width: 1200px) {
             .info-section {
-                flex-direction: column;
-                align-items: center;
-                padding: 60px 24px;
+                grid-template-columns: 1fr;
             }
 
             .footer-content {
-                grid-template-columns: 1fr 1fr;
-                gap: 40px;
+                grid-template-columns: 1fr;
             }
         }
 
@@ -414,35 +510,19 @@
             .header {
                 flex-direction: column;
                 gap: 20px;
+                padding: 20px;
             }
 
-            .nav-left {
-                flex-direction: column;
-                gap: 10px;
+            .hero-title {
+                font-size: 40px;
             }
 
-            .hero h1 {
-                font-size: 36px;
+            .hero-description {
+                font-size: 16px;
             }
 
-            .search-box {
-                width: 90%;
-            }
-
-            .table-container {
-                overflow-x: auto;
-            }
-
-            table {
-                font-size: 14px;
-            }
-
-            th, td {
-                padding: 12px 8px;
-            }
-
-            .footer-content {
-                grid-template-columns: 1fr;
+            .search-container {
+                margin-top: -80px;
             }
         }
     </style>
@@ -450,105 +530,79 @@
 <body>
     <!-- Header -->
     <header class="header">
-        <nav class="nav-left">
+        <nav class="nav-links">
             <a href="#">About</a>
             <a href="#" class="active">Research</a>
             <a href="#">Merch</a>
         </nav>
-        
-        <div class="logo">
-            <img src="/images/logo.png" alt="AMG Logo">
+
+        <div class="logo-section">
+            <img src="/images/logo.png" alt="AMG Logo" style="height: 60px; width: auto;">
         </div>
-        
-        <div class="nav-right">
-            <a href="#" class="submit-btn">Submit media</a>
+
+        <div class="header-actions">
+            <button class="submit-btn">Submit media</button>
             <div class="profile-circle">RC</div>
         </div>
     </header>
 
     <!-- Hero Section -->
-    <section class="hero">
-        <h1>AMG Population Report</h1>
+    <section class="hero-section">
+        <h1 class="hero-title">AMG Population Report</h1>
         <p class="hero-description">
-            Use AMG's Population Report search to determine the number of vinyl, cassettes, 
-            CDs and 8-tracks that AMG has graded for each artist and album in our database.
+            Use AMG's Population Report search to determine the number of vinyl, cassettes, CDs and 8-tracks that AMG has graded for each artist and album in our database.
         </p>
     </section>
 
-    <!-- Search Section -->
+    <!-- Search Box -->
     <div class="search-container">
         <div class="search-box">
             <input 
                 type="text" 
-                id="artistSearch" 
+                id="artistInput" 
                 class="search-input" 
                 placeholder="Artist or Album search"
-                list="artistList"
+                list="artistSuggestions"
             >
-            <datalist id="artistList"></datalist>
-            <button class="search-button" onclick="searchArtist()">
-                <svg viewBox="0 0 24 24" stroke-width="2">
-                    <circle cx="11" cy="11" r="8"></circle>
-                    <path d="m21 21-4.35-4.35"></path>
+            <datalist id="artistSuggestions"></datalist>
+            <button class="search-button" onclick="searchArtist()" id="searchBtn">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <path d="M11.5 21C16.7467 21 21 16.7467 21 11.5C21 6.25329 16.7467 2 11.5 2C6.25329 2 2 6.25329 2 11.5C2 16.7467 6.25329 21 11.5 21Z" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M22 22L20 20" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
             </button>
         </div>
     </div>
 
-    <!-- Info Cards -->
-    <section class="info-section">
+    <!-- Info Section -->
+    <section class="info-section" id="infoSection">
         <div class="info-card">
-            <div class="info-icon">
-                <img src="/images/magnifying.png" alt="Search">
-            </div>
-            <p>Search AMG's Population Report either by a specific artist or a specific album.</p>
+            <img src="/images/magnifying.png" alt="Search" class="info-icon" style="width: 106px; height: 106px; object-fit: contain; background: none; border-radius: 0;">
+            <p class="info-text">
+                Search AMG's Population Report either by a specific artist or a specific album.
+            </p>
         </div>
         <div class="info-card">
-            <div class="info-icon">
-                <img src="/images/microscope.png" alt="Grading">
-            </div>
-            <p>Get an exact count of each item graded from Authentic to 1-10. You can also see Population Counts broken out by Sealed, Open, and Signature Series.</p>
+            <img src="/images/microscope.png" alt="Analysis" class="info-icon" style="width: 106px; height: 106px; object-fit: contain; background: none; border-radius: 0;">
+            <p class="info-text">
+                Get an exact count of each item graded from Authentic to 1-10. You can also see Population Counts broken out by Sealed, Open, and Signature Series.
+            </p>
         </div>
         <div class="info-card">
-            <div class="info-icon">
-                <img src="/images/calendar.png" alt="Daily Updates">
-            </div>
-            <p>Data is updated each day as more and more items are submitted to AMG.</p>
+            <img src="/images/calendar.png" alt="Updates" class="info-icon" style="width: 106px; height: 106px; object-fit: contain; background: none; border-radius: 0;">
+            <p class="info-text">
+                Data is updated each day as more and more items are submitted to AMG.
+            </p>
         </div>
     </section>
 
-    <!-- Loading Message -->
-    <div id="loadingMessage">
-        <div class="loading">Searching...</div>
-    </div>
-
     <!-- Results Section -->
-    <section id="resultsSection" class="results-section">
-        <div class="results-header">
-            <h2 class="artist-name" id="artistName"></h2>
+    <section class="results-section hidden" id="resultsSection">
+        <div class="result-header">
+            <h2 class="result-title" id="resultTitle">Results</h2>
+            <p class="result-count" id="resultCount"></p>
         </div>
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Album</th>
-                        <th>Total</th>
-                        <th>Grade 1</th>
-                        <th>Grade 2</th>
-                        <th>Grade 3</th>
-                        <th>Grade 4</th>
-                        <th>Grade 5</th>
-                        <th>Grade 6</th>
-                        <th>Grade 7</th>
-                        <th>Grade 8</th>
-                        <th>Grade 9</th>
-                        <th>Grade 10</th>
-                    </tr>
-                </thead>
-                <tbody id="tableBody">
-                </tbody>
-            </table>
-        </div>
+        <div id="resultsContent"></div>
     </section>
 
     <!-- Footer -->
@@ -557,55 +611,63 @@
             <div class="footer-section">
                 <h3>Connect With Us</h3>
                 <p>Be the first to know about new updates, products, and more from AMG.</p>
-                <div class="email-input">
-                    <input type="email" placeholder="Email Address">
-                    <button>Subscribe</button>
+                <form class="newsletter-form">
+                    <input type="email" class="newsletter-input" placeholder="Email Address">
+                    <button type="submit" class="newsletter-button">Subscribe</button>
+                </form>
+            </div>
+
+            <div class="footer-section small">
+                <h4>Help —</h4>
+                <div class="footer-links">
+                    <a href="#">Resources</a>
+                    <a href="#">Returns</a>
+                    <a href="#">Refusals</a>
                 </div>
             </div>
-            
-            <div class="footer-section">
-                <h3>Help</h3>
-                <a href="#">Resources</a>
-                <a href="#">Returns</a>
-                <a href="#">Refusals</a>
+
+            <div class="footer-section small">
+                <h4>Connect —</h4>
+                <div class="footer-links">
+                    <a href="#">Contact</a>
+                    <a href="#">Careers</a>
+                    <a href="#">Instagram</a>
+                    <a href="#">X</a>
+                    <a href="#">Linkedin</a>
+                </div>
             </div>
-            
-            <div class="footer-section">
-                <h3>Connect</h3>
-                <a href="#">Contact</a>
-                <a href="#">Careers</a>
-                <a href="#">Instagram</a>
-                <a href="#">X</a>
-                <a href="#">Linkedin</a>
-            </div>
-            
-            <div class="footer-section">
-                <h3>Legal</h3>
-                <a href="#">Terms of Use</a>
-                <a href="#">Privacy Policy</a>
-                <a href="#">Accessibility</a>
+
+            <div class="footer-section small">
+                <h4>Legal —</h4>
+                <div class="footer-links">
+                    <a href="#">Terms of Use</a>
+                    <a href="#">Privacy Policy</a>
+                    <a href="#">Accessibility</a>
+                </div>
             </div>
         </div>
+
         <div class="footer-bottom">
             © Audio Media Grading 2024
         </div>
     </footer>
 
     <script>
-        // Load all artists for autocomplete
+        let allArtists = [];
+        let fullResultsData = [];
+
         async function loadArtists() {
             try {
                 const response = await fetch('/api/artists');
                 const result = await response.json();
                 
                 if (result.success) {
-                    const datalist = document.getElementById('artistList');
+                    allArtists = result.data;
+                    const datalist = document.getElementById('artistSuggestions');
                     result.data.forEach(artist => {
-                        if (artist) {
-                            const option = document.createElement('option');
-                            option.value = artist;
-                            datalist.appendChild(option);
-                        }
+                        const option = document.createElement('option');
+                        option.value = artist;
+                        datalist.appendChild(option);
                     });
                 }
             } catch (error) {
@@ -613,82 +675,170 @@
             }
         }
 
-        // Search when Enter is pressed
-        document.getElementById('artistSearch').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                searchArtist();
-            }
-        });
-
-        // Search for artist pop report
         async function searchArtist() {
-            const artist = document.getElementById('artistSearch').value.trim();
+            const artist = document.getElementById('artistInput').value.trim();
             
             if (!artist) {
                 alert('Please enter an artist name');
                 return;
             }
 
-            document.getElementById('resultsSection').style.display = 'none';
-            document.getElementById('loadingMessage').style.display = 'block';
+            const resultsSection = document.getElementById('resultsSection');
+            const resultsContent = document.getElementById('resultsContent');
+            const infoSection = document.getElementById('infoSection');
+            const searchBtn = document.getElementById('searchBtn');
+            
+            infoSection.classList.add('hidden');
+            resultsSection.classList.remove('hidden');
+            
+            resultsContent.innerHTML = '<div class="loading">Searching for ' + artist + '</div>';
+            searchBtn.disabled = true;
 
             try {
                 const response = await fetch(`/api/pop-report?artist=${encodeURIComponent(artist)}`);
                 const result = await response.json();
 
+                if (!response.ok) {
+                    throw new Error(result.error || 'Search failed');
+                }
+
                 if (result.success) {
-                    displayResults(result.artist, result.data);
+                    fullResultsData = result.data;
+                    displayResults(result);
                 } else {
-                    alert('Error: ' + result.error);
-                    document.getElementById('loadingMessage').style.display = 'none';
+                    resultsContent.innerHTML = '<div class="error">Error: ' + result.error + '</div>';
                 }
             } catch (error) {
-                alert('Error searching. Please try again.');
+                resultsContent.innerHTML = '<div class="error">Error: ' + error.message + '</div>';
                 console.error('Search error:', error);
-                document.getElementById('loadingMessage').style.display = 'none';
+            } finally {
+                searchBtn.disabled = false;
             }
         }
 
-        // Display results in table
-        function displayResults(artist, data) {
-            document.getElementById('loadingMessage').style.display = 'none';
-            document.getElementById('artistName').textContent = artist;
+        function toggleAlbumDetails(albumIndex) {
+            const albumRow = document.querySelector(`tr[data-album-index="${albumIndex}"]`);
+            const detailRows = document.querySelectorAll(`tr[data-detail-for="${albumIndex}"]`);
+            const expandIcon = albumRow.querySelector('.expand-icon');
             
-            const tbody = document.getElementById('tableBody');
-            tbody.innerHTML = '';
+            const isExpanded = albumRow.classList.contains('expanded');
+            
+            if (isExpanded) {
+                albumRow.classList.remove('expanded');
+                expandIcon.classList.remove('expanded');
+                detailRows.forEach(row => row.classList.remove('visible'));
+            } else {
+                albumRow.classList.add('expanded');
+                expandIcon.classList.add('expanded');
+                detailRows.forEach(row => row.classList.add('visible'));
+            }
+        }
 
-            if (data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="12" class="no-results">No data found for this artist</td></tr>';
-                document.getElementById('resultsSection').style.display = 'block';
+        function displayResults(result) {
+            const resultTitle = document.getElementById('resultTitle');
+            const resultCount = document.getElementById('resultCount');
+            const resultsContent = document.getElementById('resultsContent');
+
+            resultTitle.textContent = `Results for "${result.artist}"`;
+            resultCount.textContent = `Found ${result.count} album${result.count !== 1 ? 's' : ''}`;
+
+            if (result.data.length === 0) {
+                resultsContent.innerHTML = '<div class="error">No albums found for "' + result.artist + '"</div>';
                 return;
             }
 
-            data.forEach(row => {
-                const tr = document.createElement('tr');
+            let html = `
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ALBUM</th>
+                                <th>TOTAL</th>
+                                <th>GRADE 1</th>
+                                <th>GRADE 2</th>
+                                <th>GRADE 3</th>
+                                <th>GRADE 4</th>
+                                <th>GRADE 5</th>
+                                <th>GRADE 6</th>
+                                <th>GRADE 7</th>
+                                <th>GRADE 8</th>
+                                <th>GRADE 9</th>
+                                <th>GRADE 10</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            result.data.forEach((item, index) => {
+                const grades = item.gradeDistribution;
+                const total = item.totalItems || 0;
                 
-                tr.innerHTML = `
-                    <td>${row.album}</td>
-                    <td class="total-cell">${row.total}</td>
-                    <td class="grade-cell ${row.grade1 > 0 ? 'has-count' : ''}">${row.grade1 || '-'}</td>
-                    <td class="grade-cell ${row.grade2 > 0 ? 'has-count' : ''}">${row.grade2 || '-'}</td>
-                    <td class="grade-cell ${row.grade3 > 0 ? 'has-count' : ''}">${row.grade3 || '-'}</td>
-                    <td class="grade-cell ${row.grade4 > 0 ? 'has-count' : ''}">${row.grade4 || '-'}</td>
-                    <td class="grade-cell ${row.grade5 > 0 ? 'has-count' : ''}">${row.grade5 || '-'}</td>
-                    <td class="grade-cell ${row.grade6 > 0 ? 'has-count' : ''}">${row.grade6 || '-'}</td>
-                    <td class="grade-cell ${row.grade7 > 0 ? 'has-count' : ''}">${row.grade7 || '-'}</td>
-                    <td class="grade-cell ${row.grade8 > 0 ? 'has-count' : ''}">${row.grade8 || '-'}</td>
-                    <td class="grade-cell ${row.grade9 > 0 ? 'has-count' : ''}">${row.grade9 || '-'}</td>
-                    <td class="grade-cell ${row.grade10 > 0 ? 'has-count' : ''}">${row.grade10 || '-'}</td>
+                // Main album row
+                html += `
+                    <tr class="album-row" data-album-index="${index}" onclick="toggleAlbumDetails(${index})">
+                        <td>
+                            <div class="album-name">
+                                <span class="expand-icon">▶</span>
+                                <strong>${item.album || 'Unknown Album'}</strong>
+                            </div>
+                        </td>
+                        <td class="total-cell">${total}</td>
+                        <td class="grade-cell ${grades['1'] > 0 ? 'has-count' : ''}">${grades['1'] || '-'}</td>
+                        <td class="grade-cell ${grades['2'] > 0 ? 'has-count' : ''}">${grades['2'] || '-'}</td>
+                        <td class="grade-cell ${grades['3'] > 0 ? 'has-count' : ''}">${grades['3'] || '-'}</td>
+                        <td class="grade-cell ${grades['4'] > 0 ? 'has-count' : ''}">${grades['4'] || '-'}</td>
+                        <td class="grade-cell ${grades['5'] > 0 ? 'has-count' : ''}">${grades['5'] || '-'}</td>
+                        <td class="grade-cell ${grades['6'] > 0 ? 'has-count' : ''}">${grades['6'] || '-'}</td>
+                        <td class="grade-cell ${grades['7'] > 0 ? 'has-count' : ''}">${grades['7'] || '-'}</td>
+                        <td class="grade-cell ${grades['8'] > 0 ? 'has-count' : ''}">${grades['8'] || '-'}</td>
+                        <td class="grade-cell ${grades['9'] > 0 ? 'has-count' : ''}">${grades['9'] || '-'}</td>
+                        <td class="grade-cell ${grades['10'] > 0 ? 'has-count' : ''}">${grades['10'] || '-'}</td>
+                    </tr>
                 `;
-                
-                tbody.appendChild(tr);
+
+                // Detail rows for each media type
+                if (item.mediaTypes) {
+                    item.mediaTypes.forEach(media => {
+                        const mediaGrades = media.gradeDistribution;
+                        const mediaTotal = media.total || 0;
+                        
+                        html += `
+                            <tr class="detail-row" data-detail-for="${index}">
+                                <td>
+                                    <span class="media-type-label">${media.type}</span>
+                                </td>
+                                <td class="total-cell">${mediaTotal}</td>
+                                <td class="grade-cell ${mediaGrades['1'] > 0 ? 'has-count' : ''}">${mediaGrades['1'] || '-'}</td>
+                                <td class="grade-cell ${mediaGrades['2'] > 0 ? 'has-count' : ''}">${mediaGrades['2'] || '-'}</td>
+                                <td class="grade-cell ${mediaGrades['3'] > 0 ? 'has-count' : ''}">${mediaGrades['3'] || '-'}</td>
+                                <td class="grade-cell ${mediaGrades['4'] > 0 ? 'has-count' : ''}">${mediaGrades['4'] || '-'}</td>
+                                <td class="grade-cell ${mediaGrades['5'] > 0 ? 'has-count' : ''}">${mediaGrades['5'] || '-'}</td>
+                                <td class="grade-cell ${mediaGrades['6'] > 0 ? 'has-count' : ''}">${mediaGrades['6'] || '-'}</td>
+                                <td class="grade-cell ${mediaGrades['7'] > 0 ? 'has-count' : ''}">${mediaGrades['7'] || '-'}</td>
+                                <td class="grade-cell ${mediaGrades['8'] > 0 ? 'has-count' : ''}">${mediaGrades['8'] || '-'}</td>
+                                <td class="grade-cell ${mediaGrades['9'] > 0 ? 'has-count' : ''}">${mediaGrades['9'] || '-'}</td>
+                                <td class="grade-cell ${mediaGrades['10'] > 0 ? 'has-count' : ''}">${mediaGrades['10'] || '-'}</td>
+                            </tr>
+                        `;
+                    });
+                }
             });
 
-            document.getElementById('resultsSection').style.display = 'block';
-            document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' });
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            resultsContent.innerHTML = html;
         }
 
-        // Load artists on page load
+        document.getElementById('artistInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchArtist();
+            }
+        });
+
         loadArtists();
     </script>
 </body>

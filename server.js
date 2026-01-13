@@ -1,31 +1,17 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const { MongoClient } = require('mongodb');
+const { MongoClient, ObjectId } = require('mongodb');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = 3000;
 
+// Middleware
 app.use(cors());
 app.use(express.json());
-
-// Password middleware
-function checkPassword(req, res, next) {
-  const password = req.headers['x-access-password'] || req.query.password;
-  
-  if (password === process.env.ACCESS_PASSWORD) {
-    next();
-  } else {
-    res.status(401).json({ 
-      success: false, 
-      error: 'Invalid password' 
-    });
-  }
-}
-
-// Serve static files only after password check for API routes
 app.use(express.static('public'));
 
+// MongoDB connection
 let db;
 const client = new MongoClient(process.env.MONGODB_URI);
 
@@ -41,132 +27,172 @@ async function connectDB() {
 
 connectDB();
 
-// Verify password endpoint
-app.post('/api/verify-password', (req, res) => {
-  const { password } = req.body;
-  
-  if (password === process.env.ACCESS_PASSWORD) {
-    res.json({ success: true });
-  } else {
-    res.status(401).json({ 
-      success: false, 
-      error: 'Invalid password' 
-    });
-  }
-});
-
-// Protected API routes
-app.get('/api/artists', checkPassword, async (req, res) => {
+// Get all unique artists for autocomplete
+app.get('/api/artists', async (req, res) => {
   try {
-    const artists = await db.collection('items')
-      .distinct('artistPopReport', { artistPopReport: { $ne: null, $ne: '' } });
+    const artists = await db.collection('items').distinct('artistPopReport');
+    
+    // Filter out null/empty and sort
+    const cleanArtists = artists
+      .filter(a => a && a.trim())
+      .sort();
     
     res.json({
       success: true,
-      data: artists.sort()
+      data: cleanArtists
     });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    console.error('Artists error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
   }
 });
 
-app.get('/api/pop-report', checkPassword, async (req, res) => {
+// Population Report - Artist search with grade distribution
+app.get('/api/pop-report', async (req, res) => {
   try {
     const { artist } = req.query;
-    
+
     if (!artist) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Artist parameter required' 
+      return res.status(400).json({
+        success: false,
+        error: 'Please provide an artist name'
       });
     }
 
-    const popReport = await db.collection('items').aggregate([
+    // Get albums grouped by series (Vinyl Record, CD, Cassette, etc.)
+    const results = await db.collection('items').aggregate([
       {
-        $match: { 
-          artistPopReport: artist
+        $match: {
+          artistPopReport: new RegExp(`^${artist}$`, 'i')
         }
       },
       {
         $group: {
           _id: {
             album: '$albumPopReport',
-            grade: '$masterGrade'
+            series: '$series'  // Using 'series' field now
           },
+          grades: { $push: '$masterGrade' },
           count: { $sum: 1 }
         }
       },
       {
         $group: {
           _id: '$_id.album',
-          grades: {
+          mediaTypes: {
             $push: {
-              grade: '$_id.grade',
+              type: '$_id.series',
+              grades: '$grades',
               count: '$count'
             }
           },
-          totalCount: { $sum: '$count' }
+          allGrades: { $push: '$grades' }
         }
       },
       {
-        $sort: { _id: 1 }
+        $project: {
+          album: '$_id',
+          mediaTypes: {
+            $map: {
+              input: '$mediaTypes',
+              as: 'media',
+              in: {
+                type: '$$media.type',
+                total: '$$media.count',
+                gradeDistribution: {
+                  $arrayToObject: {
+                    $map: {
+                      input: { $range: [1, 11] },
+                      as: 'grade',
+                      in: {
+                        k: { $toString: '$$grade' },
+                        v: {
+                          $size: {
+                            $filter: {
+                              input: '$$media.grades',
+                              as: 'g',
+                              cond: { $eq: ['$$g', '$$grade'] }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          totalItems: { $sum: '$mediaTypes.count' },
+          gradeDistribution: {
+            $let: {
+              vars: {
+                flatGrades: {
+                  $reduce: {
+                    input: '$allGrades',
+                    initialValue: [],
+                    in: { $concatArrays: ['$$value', '$$this'] }
+                  }
+                }
+              },
+              in: {
+                $arrayToObject: {
+                  $map: {
+                    input: { $range: [1, 11] },
+                    as: 'grade',
+                    in: {
+                      k: { $toString: '$$grade' },
+                      v: {
+                        $size: {
+                          $filter: {
+                            input: '$$flatGrades',
+                            as: 'g',
+                            cond: { $eq: ['$$g', '$$grade'] }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        $sort: { album: 1 }
       }
     ]).toArray();
 
-    const tableData = popReport.map(album => {
-      const row = {
-        album: album._id || 'Unknown Album',
-        total: album.totalCount,
-        grade1: 0,
-        grade2: 0,
-        grade3: 0,
-        grade4: 0,
-        grade5: 0,
-        grade6: 0,
-        grade7: 0,
-        grade8: 0,
-        grade9: 0,
-        grade10: 0
-      };
-
-      album.grades.forEach(g => {
-        if (g.grade >= 1 && g.grade <= 10) {
-          row[`grade${g.grade}`] = g.count;
-        }
+    if (results.length === 0) {
+      return res.json({
+        success: true,
+        artist: artist,
+        count: 0,
+        data: []
       });
-
-      return row;
-    });
+    }
 
     res.json({
       success: true,
       artist: artist,
-      data: tableData
+      count: results.length,
+      data: results
     });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-app.get('/api/stats', checkPassword, async (req, res) => {
-  try {
-    const totalItems = await db.collection('items').countDocuments();
-    const totalArtists = await db.collection('items')
-      .distinct('artistPopReport', { artistPopReport: { $ne: null, $ne: '' } });
-
-    res.json({
-      success: true,
-      data: {
-        totalItems,
-        totalArtists: totalArtists.length
-      }
+    console.error('Pop report error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
     });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
   }
 });
 
+// Start server
 app.listen(PORT, () => {
   console.log(`🚀 Server running at http://localhost:${PORT}`);
+  console.log(`📊 API available at http://localhost:${PORT}/api/pop-report`);
 });
