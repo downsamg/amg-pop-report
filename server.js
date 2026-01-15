@@ -6,12 +6,10 @@ const { MongoClient, ObjectId } = require('mongodb');
 const app = express();
 const PORT = 3000;
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
-// MongoDB connection
 let db;
 const client = new MongoClient(process.env.MONGODB_URI);
 
@@ -27,33 +25,46 @@ async function connectDB() {
 
 connectDB();
 
-// Get all unique artists for autocomplete
+// Get all unique artists
 app.get('/api/artists', async (req, res) => {
   try {
     const artists = await db.collection('items').distinct('artistPopReport');
-    
-    // Filter out null/empty and sort
-    const cleanArtists = artists
-      .filter(a => a && a.trim())
-      .sort();
+    const filteredArtists = artists.filter(a => a && a.trim() !== '');
     
     res.json({
       success: true,
-      data: cleanArtists
+      data: filteredArtists.sort()
     });
   } catch (error) {
-    console.error('Artists error:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: error.message 
+    res.status(500).json({
+      success: false,
+      error: error.message
     });
   }
 });
 
-// Population Report - Artist search with grade distribution
+// Get population report for artist
+app.get('/api/item-types', async (req, res) => {
+  try {
+    const types = await db.collection('items').distinct('itemType');
+    const filteredTypes = types.filter(t => t && t.trim() !== '');
+    
+    res.json({
+      success: true,
+      data: filteredTypes.sort()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Update the /api/pop-report endpoint
 app.get('/api/pop-report', async (req, res) => {
   try {
-    const { artist } = req.query;
+    const { artist, itemType } = req.query;
 
     if (!artist) {
       return res.status(400).json({
@@ -62,18 +73,41 @@ app.get('/api/pop-report', async (req, res) => {
       });
     }
 
+    // Clean up search term and create flexible regex pattern
+    const searchTerm = artist.trim();
+    
+    // First, get all available itemTypes for this artist
+    const artistMatch = {
+      $or: [
+        { artistPopReport: new RegExp(`^${searchTerm}$`, 'i') },
+        { artistPopReport: new RegExp(`^The ${searchTerm}$`, 'i') },
+        { artistPopReport: new RegExp(`\\b${searchTerm}\\b`, 'i') },
+        { artistPopReport: { $regex: searchTerm, $options: 'i' } }
+      ]
+    };
+    
+    const availableItemTypes = await db.collection('items').distinct('itemType', artistMatch);
+    const filteredItemTypes = availableItemTypes.filter(t => t && t.trim() !== '');
+    
+    // Build match query
+    const matchQuery = { ...artistMatch };
+
+    // Add itemType filter if provided
+    if (itemType && itemType !== 'Total') {
+      matchQuery.itemType = itemType;
+    }
+
     // Get albums grouped by series (Vinyl Record, CD, Cassette, etc.)
     const results = await db.collection('items').aggregate([
       {
-        $match: {
-          artistPopReport: new RegExp(`^${artist}$`, 'i')
-        }
+        $match: matchQuery
       },
       {
         $group: {
           _id: {
             album: '$albumPopReport',
-            series: '$series'  // Using 'series' field now
+            series: '$series',
+            artist: '$artistPopReport'
           },
           grades: { $push: '$masterGrade' },
           count: { $sum: 1 }
@@ -81,7 +115,10 @@ app.get('/api/pop-report', async (req, res) => {
       },
       {
         $group: {
-          _id: '$_id.album',
+          _id: {
+            album: '$_id.album',
+            artist: '$_id.artist'
+          },
           mediaTypes: {
             $push: {
               type: '$_id.series',
@@ -94,7 +131,8 @@ app.get('/api/pop-report', async (req, res) => {
       },
       {
         $project: {
-          album: '$_id',
+          album: '$_id.album',
+          artist: '$_id.artist',
           mediaTypes: {
             $map: {
               input: '$mediaTypes',
@@ -170,14 +208,23 @@ app.get('/api/pop-report', async (req, res) => {
       return res.json({
         success: true,
         artist: artist,
+        actualArtist: null,
+        itemType: itemType || 'Total',
+        availableItemTypes: filteredItemTypes,
         count: 0,
         data: []
       });
     }
 
+    // Get the actual artist name from results
+    const actualArtist = results[0].artist || artist;
+
     res.json({
       success: true,
       artist: artist,
+      actualArtist: actualArtist,
+      itemType: itemType || 'Total',
+      availableItemTypes: filteredItemTypes,
       count: results.length,
       data: results
     });
