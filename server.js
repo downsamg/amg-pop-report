@@ -43,7 +43,25 @@ app.get('/api/artists', async (req, res) => {
   }
 });
 
-// Get population report for artist
+// Get all unique albums
+app.get('/api/albums', async (req, res) => {
+  try {
+    const albums = await db.collection('items').distinct('albumPopReport');
+    const filteredAlbums = albums.filter(a => a && a.trim() !== '');
+    
+    res.json({
+      success: true,
+      data: filteredAlbums.sort()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Get all unique itemTypes
 app.get('/api/item-types', async (req, res) => {
   try {
     const types = await db.collection('items').distinct('itemType');
@@ -61,43 +79,48 @@ app.get('/api/item-types', async (req, res) => {
   }
 });
 
-// Update the /api/pop-report endpoint
-app.get('/api/pop-report', async (req, res) => {
+// Smart search endpoint - searches both artist and album
+app.get('/api/search', async (req, res) => {
   try {
-    const { artist, itemType } = req.query;
+    const { q, itemType } = req.query;
 
-    if (!artist) {
+    if (!q) {
       return res.status(400).json({
         success: false,
-        error: 'Please provide an artist name'
+        error: 'Please provide a search term'
       });
     }
 
-    // Clean up search term and create flexible regex pattern
-    const searchTerm = artist.trim();
+    const searchTerm = q.trim();
     
-    // First, get all available itemTypes for this artist
-    const artistMatch = {
+    // Search patterns
+    const searchPatterns = {
       $or: [
+        // Artist matches
         { artistPopReport: new RegExp(`^${searchTerm}$`, 'i') },
         { artistPopReport: new RegExp(`^The ${searchTerm}$`, 'i') },
         { artistPopReport: new RegExp(`\\b${searchTerm}\\b`, 'i') },
-        { artistPopReport: { $regex: searchTerm, $options: 'i' } }
+        { artistPopReport: { $regex: searchTerm, $options: 'i' } },
+        // Album matches
+        { albumPopReport: new RegExp(`^${searchTerm}$`, 'i') },
+        { albumPopReport: new RegExp(`\\b${searchTerm}\\b`, 'i') },
+        { albumPopReport: { $regex: searchTerm, $options: 'i' } }
       ]
     };
-    
-    const availableItemTypes = await db.collection('items').distinct('itemType', artistMatch);
+
+    // Get available itemTypes for this search
+    const availableItemTypes = await db.collection('items').distinct('itemType', searchPatterns);
     const filteredItemTypes = availableItemTypes.filter(t => t && t.trim() !== '');
     
     // Build match query
-    const matchQuery = { ...artistMatch };
+    const matchQuery = { ...searchPatterns };
 
     // Add itemType filter if provided
     if (itemType && itemType !== 'Total') {
       matchQuery.itemType = itemType;
     }
 
-    // Get albums grouped by series (Vinyl Record, CD, Cassette, etc.)
+    // Aggregate to get results grouped by artist-album combination
     const results = await db.collection('items').aggregate([
       {
         $match: matchQuery
@@ -106,8 +129,8 @@ app.get('/api/pop-report', async (req, res) => {
         $group: {
           _id: {
             album: '$albumPopReport',
-            series: '$series',
-            artist: '$artistPopReport'
+            artist: '$artistPopReport',
+            series: '$series'
           },
           grades: { $push: '$masterGrade' },
           count: { $sum: 1 }
@@ -200,15 +223,14 @@ app.get('/api/pop-report', async (req, res) => {
         }
       },
       {
-        $sort: { album: 1 }
+        $sort: { artist: 1, album: 1 }
       }
     ]).toArray();
 
     if (results.length === 0) {
       return res.json({
         success: true,
-        artist: artist,
-        actualArtist: null,
+        searchTerm: searchTerm,
         itemType: itemType || 'Total',
         availableItemTypes: filteredItemTypes,
         count: 0,
@@ -216,13 +238,9 @@ app.get('/api/pop-report', async (req, res) => {
       });
     }
 
-    // Get the actual artist name from results
-    const actualArtist = results[0].artist || artist;
-
     res.json({
       success: true,
-      artist: artist,
-      actualArtist: actualArtist,
+      searchTerm: searchTerm,
       itemType: itemType || 'Total',
       availableItemTypes: filteredItemTypes,
       count: results.length,
@@ -230,7 +248,7 @@ app.get('/api/pop-report', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Pop report error:', error);
+    console.error('Search error:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -241,5 +259,5 @@ app.get('/api/pop-report', async (req, res) => {
 // Start server
 app.listen(PORT, () => {
   console.log(`🚀 Server running at http://localhost:${PORT}`);
-  console.log(`📊 API available at http://localhost:${PORT}/api/pop-report`);
+  console.log(`📊 API available at http://localhost:${PORT}/api/search`);
 });

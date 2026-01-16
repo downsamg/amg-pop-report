@@ -691,7 +691,7 @@
                 display: grid;
                 grid-template-columns: repeat(5, 1fr);
                 gap: 8px;
-                margin-bottom: 12px;
+                margin-bottom: 8px;
             }
 
             .grade-item {
@@ -807,13 +807,13 @@
         <div class="search-box">
             <input 
                 type="text" 
-                id="artistInput" 
+                id="searchInput" 
                 class="search-input" 
-                placeholder="Artist or Album search"
-                list="artistSuggestions"
+                placeholder="Search by artist or album..."
+                list="searchSuggestions"
             >
-            <datalist id="artistSuggestions"></datalist>
-            <button class="search-button" onclick="searchArtist()" id="searchBtn">
+            <datalist id="searchSuggestions"></datalist>
+            <button class="search-button" onclick="performSearch()" id="searchBtn">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                     <path d="M11.5 21C16.7467 21 21 16.7467 21 11.5C21 6.25329 16.7467 2 11.5 2C6.25329 2 2 6.25329 2 11.5C2 16.7467 6.25329 21 11.5 21Z" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                     <path d="M22 22L20 20" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -906,351 +906,377 @@
     </footer>
 
     <script>
-        let allArtists = [];
-        let fullResultsData = [];
-        let currentArtist = '';
-        let currentItemType = 'Total';
-        let availableItemTypes = [];
+    let allSuggestions = [];
+    let currentSearchTerm = '';
+    let currentItemType = 'Total';
+    let availableItemTypes = [];
 
-        async function loadArtists() {
-            try {
-                const response = await fetch('/api/artists');
-                const result = await response.json();
-                
-                if (result.success) {
-                    allArtists = result.data;
-                    const datalist = document.getElementById('artistSuggestions');
-                    result.data.forEach(artist => {
-                        const option = document.createElement('option');
-                        option.value = artist;
-                        datalist.appendChild(option);
-                    });
-                }
-            } catch (error) {
-                console.error('Error loading artists:', error);
+    async function loadSuggestions() {
+        try {
+            // Load both artists and albums
+            const [artistsRes, albumsRes] = await Promise.all([
+                fetch('/api/artists'),
+                fetch('/api/albums')
+            ]);
+            
+            const artists = await artistsRes.json();
+            const albums = await albumsRes.json();
+            
+            if (artists.success && albums.success) {
+                // Combine and dedupe
+                allSuggestions = [...new Set([...artists.data, ...albums.data])].sort();
+                updateSearchSuggestions();
             }
+        } catch (error) {
+            console.error('Error loading suggestions:', error);
+        }
+    }
+
+    function updateSearchSuggestions() {
+        const datalist = document.getElementById('searchSuggestions');
+        datalist.innerHTML = '';
+        
+        allSuggestions.forEach(item => {
+            const option = document.createElement('option');
+            option.value = item;
+            datalist.appendChild(option);
+        });
+    }
+
+    function updateFilterButtons(availableTypes) {
+        const filterToggle = document.getElementById('filterToggle');
+        
+        if (!availableTypes || availableTypes.length === 0) {
+            filterToggle.style.display = 'none';
+            return;
+        }
+        
+        filterToggle.style.display = 'flex';
+        filterToggle.innerHTML = '';
+        
+        // Always show Total first
+        const totalBtn = document.createElement('button');
+        totalBtn.className = 'filter-btn total active';
+        totalBtn.setAttribute('data-type', 'Total');
+        totalBtn.textContent = 'Total';
+        totalBtn.onclick = () => filterByItemType('Total');
+        filterToggle.appendChild(totalBtn);
+        
+        // Add buttons only for available types
+        availableTypes.forEach(type => {
+            if (!type || type === 'Unknown') return;
+            
+            const btn = document.createElement('button');
+            let className = type.toLowerCase().replace(/\s+/g, '-');
+            if (type === 'Signature Series') {
+                className = 'signature';
+            }
+            btn.className = `filter-btn ${className}`;
+            btn.setAttribute('data-type', type);
+            btn.textContent = type === 'Signature Series' ? 'Signature' : type;
+            btn.onclick = () => filterByItemType(type);
+            
+            filterToggle.appendChild(btn);
+        });
+    }
+
+    async function performSearch() {
+        const searchTerm = document.getElementById('searchInput').value.trim();
+        
+        if (!searchTerm) {
+            alert('Please enter an artist or album name');
+            return;
         }
 
-        function updateFilterButtons(availableTypes) {
-            const filterToggle = document.getElementById('filterToggle');
-            
-            if (!availableTypes || availableTypes.length === 0) {
-                filterToggle.style.display = 'none';
-                return;
+        currentSearchTerm = searchTerm;
+        currentItemType = 'Total';
+        
+        const resultsSection = document.getElementById('resultsSection');
+        const resultsContent = document.getElementById('resultsContent');
+        const infoSection = document.getElementById('infoSection');
+        const searchBtn = document.getElementById('searchBtn');
+        
+        infoSection.classList.add('hidden');
+        resultsSection.classList.remove('hidden');
+        
+        resultsContent.innerHTML = '<div class="loading">Searching for ' + searchTerm + '</div>';
+        searchBtn.disabled = true;
+
+        try {
+            const response = await fetch(`/api/search?q=${encodeURIComponent(searchTerm)}`);
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.error || 'Search failed');
             }
-            
-            filterToggle.style.display = 'flex';
-            filterToggle.innerHTML = '';
-            
-            // Always show Total first
-            const totalBtn = document.createElement('button');
-            totalBtn.className = 'filter-btn total active';
-            totalBtn.setAttribute('data-type', 'Total');
-            totalBtn.textContent = 'Total';
-            totalBtn.onclick = () => filterByItemType('Total');
-            filterToggle.appendChild(totalBtn);
-            
-            // Add buttons only for available types
-            availableTypes.forEach(type => {
-                if (!type || type === 'Unknown') return;
-                
-                const btn = document.createElement('button');
-                // Create clean class name
-                let className = type.toLowerCase().replace(/\s+/g, '-');
-                // Special handling for Signature Series
-                if (type === 'Signature Series') {
-                    className = 'signature';
-                }
-                btn.className = `filter-btn ${className}`;
-                btn.setAttribute('data-type', type);
-                btn.textContent = type === 'Signature Series' ? 'Signature' : type;
-                btn.onclick = () => filterByItemType(type);
-                
-                filterToggle.appendChild(btn);
-            });
+
+            if (result.success) {
+                availableItemTypes = result.availableItemTypes || [];
+                updateFilterButtons(availableItemTypes);
+                displayResults(result);
+            } else {
+                resultsContent.innerHTML = '<div class="error">Error: ' + result.error + '</div>';
+            }
+        } catch (error) {
+            resultsContent.innerHTML = '<div class="error">Error: ' + error.message + '</div>';
+            console.error('Search error:', error);
+        } finally {
+            searchBtn.disabled = false;
+        }
+    }
+
+    async function filterByItemType(itemType) {
+        if (!currentSearchTerm) return;
+        
+        currentItemType = itemType;
+        
+        // Update active button
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.getAttribute('data-type') === itemType) {
+                btn.classList.add('active');
+            }
+        });
+        
+        const tbody = document.querySelector('tbody');
+        if (tbody) {
+            tbody.style.opacity = '0.5';
         }
 
-        async function searchArtist() {
-            const artist = document.getElementById('artistInput').value.trim();
+        try {
+            const url = itemType === 'Total' 
+                ? `/api/search?q=${encodeURIComponent(currentSearchTerm)}`
+                : `/api/search?q=${encodeURIComponent(currentSearchTerm)}&itemType=${encodeURIComponent(itemType)}`;
             
-            if (!artist) {
-                alert('Please enter an artist name');
-                return;
+            const response = await fetch(url);
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.error || 'Search failed');
             }
 
-            currentArtist = artist;
-            currentItemType = 'Total';
-            
-            const resultsSection = document.getElementById('resultsSection');
-            const resultsContent = document.getElementById('resultsContent');
-            const infoSection = document.getElementById('infoSection');
-            const searchBtn = document.getElementById('searchBtn');
-            const filterToggle = document.getElementById('filterToggle');
-            
-            infoSection.classList.add('hidden');
-            resultsSection.classList.remove('hidden');
-            
-            resultsContent.innerHTML = '<div class="loading">Searching for ' + artist + '</div>';
-            searchBtn.disabled = true;
-
-            try {
-                const response = await fetch(`/api/pop-report?artist=${encodeURIComponent(artist)}`);
-                const result = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(result.error || 'Search failed');
-                }
-
-                if (result.success) {
-                    fullResultsData = result.data;
-                    availableItemTypes = result.availableItemTypes || [];
-                    
-                    updateFilterButtons(availableItemTypes);
-                    displayResults(result);
-                } else {
-                    resultsContent.innerHTML = '<div class="error">Error: ' + result.error + '</div>';
-                }
-            } catch (error) {
-                resultsContent.innerHTML = '<div class="error">Error: ' + error.message + '</div>';
-                console.error('Search error:', error);
-            } finally {
-                searchBtn.disabled = false;
-            }
-        }
-
-        async function filterByItemType(itemType) {
-            if (!currentArtist) return;
-            
-            currentItemType = itemType;
-            
-            // Update active button
-            document.querySelectorAll('.filter-btn').forEach(btn => {
-                btn.classList.remove('active');
-                if (btn.getAttribute('data-type') === itemType) {
-                    btn.classList.add('active');
-                }
-            });
-            
-            const tbody = document.querySelector('tbody');
-            if (tbody) {
-                tbody.style.opacity = '0.5';
-            }
-
-            try {
-                const url = itemType === 'Total' 
-                    ? `/api/pop-report?artist=${encodeURIComponent(currentArtist)}`
-                    : `/api/pop-report?artist=${encodeURIComponent(currentArtist)}&itemType=${encodeURIComponent(itemType)}`;
-                
-                const response = await fetch(url);
-                const result = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(result.error || 'Search failed');
-                }
-
-                if (result.success) {
-                    displayResults(result);
-                } else {
-                    const resultsContent = document.getElementById('resultsContent');
-                    resultsContent.innerHTML = '<div class="error">Error: ' + result.error + '</div>';
-                }
-            } catch (error) {
+            if (result.success) {
+                displayResults(result);
+            } else {
                 const resultsContent = document.getElementById('resultsContent');
-                resultsContent.innerHTML = '<div class="error">Error: ' + error.message + '</div>';
-                console.error('Filter error:', error);
-            } finally {
-                if (tbody) {
-                    tbody.style.opacity = '1';
-                }
+                resultsContent.innerHTML = '<div class="error">Error: ' + result.error + '</div>';
             }
-        }
-
-        function toggleAlbumDetails(albumIndex) {
-            const albumRow = document.querySelector(`tr[data-album-index="${albumIndex}"]`);
-            const detailRows = document.querySelectorAll(`tr[data-detail-for="${albumIndex}"]`);
-            const expandIcon = albumRow.querySelector('.expand-icon');
-            
-            const isExpanded = albumRow.classList.contains('expanded');
-            
-            if (isExpanded) {
-                albumRow.classList.remove('expanded');
-                expandIcon.classList.remove('expanded');
-                detailRows.forEach(row => row.classList.remove('visible'));
-            } else {
-                albumRow.classList.add('expanded');
-                expandIcon.classList.add('expanded');
-                detailRows.forEach(row => row.classList.add('visible'));
-            }
-        }
-
-        function toggleMobileCard(index) {
-            const breakdown = document.getElementById(`mobile-breakdown-${index}`);
-            const icon = document.getElementById(`mobile-icon-${index}`);
-            
-            if (breakdown.classList.contains('visible')) {
-                breakdown.classList.remove('visible');
-                icon.textContent = '▶';
-            } else {
-                breakdown.classList.add('visible');
-                icon.textContent = '▼';
-            }
-        }
-
-        function displayResults(result) {
-            const resultTitle = document.getElementById('resultTitle');
-            const resultCount = document.getElementById('resultCount');
+        } catch (error) {
             const resultsContent = document.getElementById('resultsContent');
-
-            const displayArtist = result.actualArtist || result.artist;
-            const itemTypeText = result.itemType && result.itemType !== 'Total' ? ` (${result.itemType})` : '';
-            resultTitle.textContent = `Results for "${displayArtist}"${itemTypeText}`;
-            resultCount.textContent = `Found ${result.count} album${result.count !== 1 ? 's' : ''}`;
-
-            if (result.data.length === 0) {
-                resultsContent.innerHTML = '<div class="error">No albums found</div>';
-                return;
+            resultsContent.innerHTML = '<div class="error">Error: ' + error.message + '</div>';
+            console.error('Filter error:', error);
+        } finally {
+            if (tbody) {
+                tbody.style.opacity = '1';
             }
+        }
+    }
 
-            // Desktop table HTML
-            let desktopHtml = `
-                <div class="table-container desktop-only">
-                    <table>
-                       <thead>
-                            <tr>
-                                <th>ALBUM</th>
-                                <th>TOTAL</th>
-                                <th>AMG 1</th>
-                                <th>AMG 2</th>
-                                <th>AMG 3</th>
-                                <th>AMG 4</th>
-                                <th>AMG 5</th>
-                                <th>AMG 6</th>
-                                <th>AMG 7</th>
-                                <th>AMG 8</th>
-                                <th>AMG 9</th>
-                                <th>AMG 10</th>
-                            </tr>
-                        </thead>
-                        <tbody>
+    function toggleAlbumDetails(albumIndex) {
+        const albumRow = document.querySelector(`tr[data-album-index="${albumIndex}"]`);
+        const detailRows = document.querySelectorAll(`tr[data-detail-for="${albumIndex}"]`);
+        const expandIcon = albumRow.querySelector('.expand-icon');
+        
+        const isExpanded = albumRow.classList.contains('expanded');
+        
+        if (isExpanded) {
+            albumRow.classList.remove('expanded');
+            expandIcon.classList.remove('expanded');
+            detailRows.forEach(row => row.classList.remove('visible'));
+        } else {
+            albumRow.classList.add('expanded');
+            expandIcon.classList.add('expanded');
+            detailRows.forEach(row => row.classList.add('visible'));
+        }
+    }
+
+    function toggleMobileCard(index) {
+        const breakdown = document.getElementById(`mobile-breakdown-${index}`);
+        const icon = document.getElementById(`mobile-icon-${index}`);
+        
+        if (breakdown.classList.contains('visible')) {
+            breakdown.classList.remove('visible');
+            icon.textContent = '▶';
+        } else {
+            breakdown.classList.add('visible');
+            icon.textContent = '▼';
+        }
+    }
+
+    function displayResults(result) {
+        const resultTitle = document.getElementById('resultTitle');
+        const resultCount = document.getElementById('resultCount');
+        const resultsContent = document.getElementById('resultsContent');
+
+        const itemTypeText = result.itemType && result.itemType !== 'Total' ? ` (${result.itemType})` : '';
+        
+        resultTitle.textContent = `Results for "${result.searchTerm}"${itemTypeText}`;
+        resultCount.textContent = `Found ${result.count} result${result.count !== 1 ? 's' : ''}`;
+
+        if (result.data.length === 0) {
+            resultsContent.innerHTML = '<div class="error">No results found</div>';
+            return;
+        }
+
+        // Desktop table HTML
+        let desktopHtml = `
+            <div class="table-container desktop-only">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ARTIST / ALBUM</th>
+                            <th>TOTAL</th>
+                            <th>AMG 1</th>
+                            <th>AMG 2</th>
+                            <th>AMG 3</th>
+                            <th>AMG 4</th>
+                            <th>AMG 5</th>
+                            <th>AMG 6</th>
+                            <th>AMG 7</th>
+                            <th>AMG 8</th>
+                            <th>AMG 9</th>
+                            <th>AMG 10</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+
+        // Mobile cards HTML
+        let mobileHtml = '<div class="mobile-cards">';
+
+        result.data.forEach((item, index) => {
+            const grades = item.gradeDistribution;
+            const total = item.totalItems || 0;
+            const displayLabel = `${item.artist} - ${item.album}`;
+            
+            // Desktop table row
+            desktopHtml += `
+                <tr class="album-row" data-album-index="${index}" onclick="toggleAlbumDetails(${index})">
+                    <td>
+                        <div class="album-name">
+                            <span class="expand-icon">▶</span>
+                            <strong>${displayLabel}</strong>
+                        </div>
+                    </td>
+                    <td class="total-cell">${total}</td>
+                    <td class="grade-cell ${grades['1'] > 0 ? 'has-count' : ''}">${grades['1'] || '-'}</td>
+                    <td class="grade-cell ${grades['2'] > 0 ? 'has-count' : ''}">${grades['2'] || '-'}</td>
+                    <td class="grade-cell ${grades['3'] > 0 ? 'has-count' : ''}">${grades['3'] || '-'}</td>
+                    <td class="grade-cell ${grades['4'] > 0 ? 'has-count' : ''}">${grades['4'] || '-'}</td>
+                    <td class="grade-cell ${grades['5'] > 0 ? 'has-count' : ''}">${grades['5'] || '-'}</td>
+                    <td class="grade-cell ${grades['6'] > 0 ? 'has-count' : ''}">${grades['6'] || '-'}</td>
+                    <td class="grade-cell ${grades['7'] > 0 ? 'has-count' : ''}">${grades['7'] || '-'}</td>
+                    <td class="grade-cell ${grades['8'] > 0 ? 'has-count' : ''}">${grades['8'] || '-'}</td>
+                    <td class="grade-cell ${grades['9'] > 0 ? 'has-count' : ''}">${grades['9'] || '-'}</td>
+                    <td class="grade-cell ${grades['10'] > 0 ? 'has-count' : ''}">${grades['10'] || '-'}</td>
+                </tr>
             `;
 
-            // Mobile cards HTML
-            let mobileHtml = '<div class="mobile-cards">';
+            // Desktop detail rows
+            if (item.mediaTypes) {
+                item.mediaTypes.forEach(media => {
+                    const mediaGrades = media.gradeDistribution;
+                    const mediaTotal = media.total || 0;
+                    
+                    desktopHtml += `
+                        <tr class="detail-row" data-detail-for="${index}">
+                            <td>
+                                <span class="media-type-label">${media.type}</span>
+                            </td>
+                            <td class="total-cell">${mediaTotal}</td>
+                            <td class="grade-cell ${mediaGrades['1'] > 0 ? 'has-count' : ''}">${mediaGrades['1'] || '-'}</td>
+                            <td class="grade-cell ${mediaGrades['2'] > 0 ? 'has-count' : ''}">${mediaGrades['2'] || '-'}</td>
+                            <td class="grade-cell ${mediaGrades['3'] > 0 ? 'has-count' : ''}">${mediaGrades['3'] || '-'}</td>
+                            <td class="grade-cell ${mediaGrades['4'] > 0 ? 'has-count' : ''}">${mediaGrades['4'] || '-'}</td>
+                            <td class="grade-cell ${mediaGrades['5'] > 0 ? 'has-count' : ''}">${mediaGrades['5'] || '-'}</td>
+                            <td class="grade-cell ${mediaGrades['6'] > 0 ? 'has-count' : ''}">${mediaGrades['6'] || '-'}</td>
+                            <td class="grade-cell ${mediaGrades['7'] > 0 ? 'has-count' : ''}">${mediaGrades['7'] || '-'}</td>
+                            <td class="grade-cell ${mediaGrades['8'] > 0 ? 'has-count' : ''}">${mediaGrades['8'] || '-'}</td>
+                            <td class="grade-cell ${mediaGrades['9'] > 0 ? 'has-count' : ''}">${mediaGrades['9'] || '-'}</td>
+                            <td class="grade-cell ${mediaGrades['10'] > 0 ? 'has-count' : ''}">${mediaGrades['10'] || '-'}</td>
+                        </tr>
+                    `;
+                });
+            }
 
-            result.data.forEach((item, index) => {
-                const grades = item.gradeDistribution;
-                const total = item.totalItems || 0;
-                
-                // Desktop table row
-                desktopHtml += `
-                    <tr class="album-row" data-album-index="${index}" onclick="toggleAlbumDetails(${index})">
-                        <td>
-                            <div class="album-name">
-                                <span class="expand-icon">▶</span>
-                                <strong>${item.album || 'Unknown Album'}</strong>
-                            </div>
-                        </td>
-                        <td class="total-cell">${total}</td>
-                        <td class="grade-cell ${grades['1'] > 0 ? 'has-count' : ''}">${grades['1'] || '-'}</td>
-                        <td class="grade-cell ${grades['2'] > 0 ? 'has-count' : ''}">${grades['2'] || '-'}</td>
-                        <td class="grade-cell ${grades['3'] > 0 ? 'has-count' : ''}">${grades['3'] || '-'}</td>
-                        <td class="grade-cell ${grades['4'] > 0 ? 'has-count' : ''}">${grades['4'] || '-'}</td>
-                        <td class="grade-cell ${grades['5'] > 0 ? 'has-count' : ''}">${grades['5'] || '-'}</td>
-                        <td class="grade-cell ${grades['6'] > 0 ? 'has-count' : ''}">${grades['6'] || '-'}</td>
-                        <td class="grade-cell ${grades['7'] > 0 ? 'has-count' : ''}">${grades['7'] || '-'}</td>
-                        <td class="grade-cell ${grades['8'] > 0 ? 'has-count' : ''}">${grades['8'] || '-'}</td>
-                        <td class="grade-cell ${grades['9'] > 0 ? 'has-count' : ''}">${grades['9'] || '-'}</td>
-                        <td class="grade-cell ${grades['10'] > 0 ? 'has-count' : ''}">${grades['10'] || '-'}</td>
-                    </tr>
-                `;
-
-                // Desktop detail rows
-                if (item.mediaTypes) {
-                    item.mediaTypes.forEach(media => {
-                        const mediaGrades = media.gradeDistribution;
-                        const mediaTotal = media.total || 0;
-                        
-                        desktopHtml += `
-                            <tr class="detail-row" data-detail-for="${index}">
-                                <td>
-                                    <span class="media-type-label">${media.type}</span>
-                                </td>
-                                <td class="total-cell">${mediaTotal}</td>
-                                <td class="grade-cell ${mediaGrades['1'] > 0 ? 'has-count' : ''}">${mediaGrades['1'] || '-'}</td>
-                                <td class="grade-cell ${mediaGrades['2'] > 0 ? 'has-count' : ''}">${mediaGrades['2'] || '-'}</td>
-                                <td class="grade-cell ${mediaGrades['3'] > 0 ? 'has-count' : ''}">${mediaGrades['3'] || '-'}</td>
-                                <td class="grade-cell ${mediaGrades['4'] > 0 ? 'has-count' : ''}">${mediaGrades['4'] || '-'}</td>
-                                <td class="grade-cell ${mediaGrades['5'] > 0 ? 'has-count' : ''}">${mediaGrades['5'] || '-'}</td>
-                                <td class="grade-cell ${mediaGrades['6'] > 0 ? 'has-count' : ''}">${mediaGrades['6'] || '-'}</td>
-                                <td class="grade-cell ${mediaGrades['7'] > 0 ? 'has-count' : ''}">${mediaGrades['7'] || '-'}</td>
-                                <td class="grade-cell ${mediaGrades['8'] > 0 ? 'has-count' : ''}">${mediaGrades['8'] || '-'}</td>
-                                <td class="grade-cell ${mediaGrades['9'] > 0 ? 'has-count' : ''}">${mediaGrades['9'] || '-'}</td>
-                                <td class="grade-cell ${mediaGrades['10'] > 0 ? 'has-count' : ''}">${mediaGrades['10'] || '-'}</td>
-                            </tr>
-                        `;
-                    });
-                }
-
-                // Mobile card
-                mobileHtml += `
-                    <div class="album-card">
-                        <div class="album-card-header" onclick="toggleMobileCard(${index})">
-                            <div class="album-card-title">
-                                <span class="expand-icon" id="mobile-icon-${index}">▶</span>
-                                <span>${item.album || 'Unknown Album'}</span>
-                            </div>
-                            <div class="album-card-total">${total}</div>
+            // Mobile card
+            mobileHtml += `
+                <div class="album-card">
+                    <div class="album-card-header" onclick="toggleMobileCard(${index})">
+                        <div class="album-card-title">
+                            <span class="expand-icon" id="mobile-icon-${index}">▶</span>
+                            <span>${displayLabel}</span>
                         </div>
-                        
-                        <div class="grade-summary">
-                            ${[6, 7, 8, 9, 10].map(grade => `
-                                <div class="grade-item ${grades[grade] > 0 ? 'has-count' : ''}">
-                                    <span class="grade-label">G${grade}</span>
-                                    <span class="grade-value">${grades[grade] || '-'}</span>
-                                </div>
-                            `).join('')}
-                        </div>
-                        
+                        <div class="album-card-total">${total}</div>
+                    </div>
+                    
+                    <div class="grade-summary">
+                        ${[1, 2, 3, 4, 5].map(grade => `
+                            <div class="grade-item ${grades[grade] > 0 ? 'has-count' : ''}">
+                                <span class="grade-label">AMG${grade}</span>
+                                <span class="grade-value">${grades[grade] || '-'}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="grade-summary">
+                        ${[6, 7, 8, 9, 10].map(grade => `
+                            <div class="grade-item ${grades[grade] > 0 ? 'has-count' : ''}">
+                                <span class="grade-label">AMG${grade}</span>
+                                <span class="grade-value">${grades[grade] || '-'}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                    
+                    ${item.mediaTypes && item.mediaTypes.length > 0 ? `
                         <div class="media-breakdown" id="mobile-breakdown-${index}">
-                            ${item.mediaTypes ? item.mediaTypes.map(media => {
+                            ${item.mediaTypes.map(media => {
                                 const mediaGrades = media.gradeDistribution;
                                 return `
                                     <div class="media-type-card">
                                         <div class="media-type-header">${media.type} (${media.total})</div>
                                         <div class="grade-summary">
+                                            ${[1, 2, 3, 4, 5].map(grade => `
+                                                <div class="grade-item ${mediaGrades[grade] > 0 ? 'has-count' : ''}">
+                                                    <span class="grade-label">AMG${grade}</span>
+                                                    <span class="grade-value">${mediaGrades[grade] || '-'}</span>
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                        <div class="grade-summary">
                                             ${[6, 7, 8, 9, 10].map(grade => `
                                                 <div class="grade-item ${mediaGrades[grade] > 0 ? 'has-count' : ''}">
-                                                    <span class="grade-label">G${grade}</span>
+                                                    <span class="grade-label">AMG${grade}</span>
                                                     <span class="grade-value">${mediaGrades[grade] || '-'}</span>
                                                 </div>
                                             `).join('')}
                                         </div>
                                     </div>
                                 `;
-                            }).join('') : ''}
+                            }).join('')}
                         </div>
-                    </div>
-                `;
-            });
-
-            desktopHtml += `
-                        </tbody>
-                    </table>
+                    ` : ''}
                 </div>
             `;
-
-            mobileHtml += '</div>';
-
-            resultsContent.innerHTML = desktopHtml + mobileHtml;
-        }
-
-        document.getElementById('artistInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                searchArtist();
-            }
         });
 
-        loadArtists();
-    </script>
+        desktopHtml += `
+                    </tbody>
+                </table>
+            </div>
+        `;
+
+        mobileHtml += '</div>';
+
+        resultsContent.innerHTML = desktopHtml + mobileHtml;
+    }
+
+    document.getElementById('searchInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            performSearch();
+        }
+    });
+
+    loadSuggestions();
+</script>
 </body>
 </html>
