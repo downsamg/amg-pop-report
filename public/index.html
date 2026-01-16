@@ -269,7 +269,7 @@
             flex-wrap: wrap;
         }
 
-        .filter-btn {
+       .filter-btn {
             padding: 10px 24px;
             border-radius: 20px;
             border: none;
@@ -300,9 +300,9 @@
             color: #006400;
         }
 
-        .filter-btn.signature-series.active {
-            background: #FFD700;
-            color: #8B4513;
+        .filter-btn.signature.active {
+            background: #F4E44D;
+            color: #252422;
         }
 
         .filter-btn:hover {
@@ -350,25 +350,27 @@
             border-bottom: 1px solid #eee;
         }
 
-        tbody {
-            transition: opacity 0.3s ease;
-        }
-
         tbody tr.album-row {
             cursor: pointer;
             transition: background 0.2s;
+            background: white;
+        }
+
+        tbody tr.album-row:nth-child(4n+1),
+        tbody tr.album-row:nth-child(4n+2) {
+            background: #F5F5F0;
         }
 
         tbody tr.album-row:hover {
-            background: #f0f0f0;
+            background: #E8E8E0;
         }
 
         tbody tr.album-row.expanded {
-            background: #e8e8e8;
+            background: #E0E0D8;
         }
 
         tbody tr.detail-row {
-            background: #fafafa;
+            background: #E0F7FA;
             display: none;
         }
 
@@ -379,8 +381,19 @@
         tbody tr.detail-row td {
             padding-left: 40px;
             font-size: 14px;
-            border-bottom: 1px solid #f0f0f0;
+            border-bottom: 1px solid #B2EBF2;
         }
+
+        tbody tr.detail-row:last-of-type td {
+            border-bottom: 2px solid #4DD0E1;
+        }
+
+        /* Blue gradient for detail row grade cells */
+        tbody tr.detail-row .grade-cell.has-count {
+            background: linear-gradient(135deg, #E0F7FA 0%, #80DEEA 100%);
+            color: #00838F;
+            font-weight: 600;
+}
 
         tbody tr.detail-row:last-of-type td {
             border-bottom: 2px solid #ddd;
@@ -415,10 +428,10 @@
         }
 
         .grade-cell.has-count {
-            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
-            color: #1976d2;
+            background: linear-gradient(135deg, #E8F5E9 0%, #A5D6A7 100%);
+            color: #2E7D32;
             font-weight: 600;
-        }
+}
 
         .total-cell {
             font-weight: 700;
@@ -689,7 +702,7 @@
             }
 
             .grade-item.has-count {
-                background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+                background: linear-gradient(135deg, #E8F5E9 0%, #A5D6A7 100%);
             }
 
             .grade-label {
@@ -706,7 +719,7 @@
             }
 
             .grade-item.has-count .grade-value {
-                color: #1976d2;
+                color: #2E7D32;
             }
 
             .media-breakdown {
@@ -942,7 +955,12 @@
                 if (!type || type === 'Unknown') return;
                 
                 const btn = document.createElement('button');
-                const className = type.toLowerCase().replace(' ', '-');
+                // Create clean class name
+                let className = type.toLowerCase().replace(/\s+/g, '-');
+                // Special handling for Signature Series
+                if (type === 'Signature Series') {
+                    className = 'signature';
+                }
                 btn.className = `filter-btn ${className}`;
                 btn.setAttribute('data-type', type);
                 btn.textContent = type === 'Signature Series' ? 'Signature' : type;
@@ -1097,20 +1115,20 @@
             let desktopHtml = `
                 <div class="table-container desktop-only">
                     <table>
-                        <thead>
+                       <thead>
                             <tr>
                                 <th>ALBUM</th>
                                 <th>TOTAL</th>
-                                <th>GRADE 1</th>
-                                <th>GRADE 2</th>
-                                <th>GRADE 3</th>
-                                <th>GRADE 4</th>
-                                <th>GRADE 5</th>
-                                <th>GRADE 6</th>
-                                <th>GRADE 7</th>
-                                <th>GRADE 8</th>
-                                <th>GRADE 9</th>
-                                <th>GRADE 10</th>
+                                <th>AMG 1</th>
+                                <th>AMG 2</th>
+                                <th>AMG 3</th>
+                                <th>AMG 4</th>
+                                <th>AMG 5</th>
+                                <th>AMG 6</th>
+                                <th>AMG 7</th>
+                                <th>AMG 8</th>
+                                <th>AMG 9</th>
+                                <th>AMG 10</th>
                             </tr>
                         </thead>
                         <tbody>
