@@ -1446,7 +1446,6 @@
                         <thead>
                             <tr>
                                 <th style="text-align: left;">ARTIST / ALBUM</th>
-                                <th style="text-align: center;">TOTAL</th>
                                 <th style="text-align: center;">AMG 1</th>
                                 <th style="text-align: center;">AMG 2</th>
                                 <th style="text-align: center;">AMG 3</th>
@@ -1457,6 +1456,7 @@
                                 <th style="text-align: center;">AMG 8</th>
                                 <th style="text-align: center;">AMG 9</th>
                                 <th style="text-align: center;">AMG 10</th>
+                                <th style="text-align: center;">TOTAL</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -1478,7 +1478,6 @@
                                 <strong>${displayLabel}</strong>
                             </div>
                         </td>
-                        <td class="total-cell">${total}</td>
                         <td class="grade-cell ${grades['1'] > 0 ? 'has-count' : ''}">${grades['1'] || '-'}</td>
                         <td class="grade-cell ${grades['2'] > 0 ? 'has-count' : ''}">${grades['2'] || '-'}</td>
                         <td class="grade-cell ${grades['3'] > 0 ? 'has-count' : ''}">${grades['3'] || '-'}</td>
@@ -1489,6 +1488,7 @@
                         <td class="grade-cell ${grades['8'] > 0 ? 'has-count' : ''}">${grades['8'] || '-'}</td>
                         <td class="grade-cell ${grades['9'] > 0 ? 'has-count' : ''}">${grades['9'] || '-'}</td>
                         <td class="grade-cell ${grades['10'] > 0 ? 'has-count' : ''}">${grades['10'] || '-'}</td>
+                        <td class="total-cell">${total}</td>
                     </tr>
                 `;
 
@@ -1506,7 +1506,6 @@
                                         <span class="media-type-label">${media.type}</span>
                                     </div>
                                 </td>
-                                <td class="total-cell">${mediaTotal}</td>
                                 <td class="grade-cell ${mediaGrades['1'] > 0 ? 'has-count' : ''}">${mediaGrades['1'] || '-'}</td>
                                 <td class="grade-cell ${mediaGrades['2'] > 0 ? 'has-count' : ''}">${mediaGrades['2'] || '-'}</td>
                                 <td class="grade-cell ${mediaGrades['3'] > 0 ? 'has-count' : ''}">${mediaGrades['3'] || '-'}</td>
@@ -1517,6 +1516,7 @@
                                 <td class="grade-cell ${mediaGrades['8'] > 0 ? 'has-count' : ''}">${mediaGrades['8'] || '-'}</td>
                                 <td class="grade-cell ${mediaGrades['9'] > 0 ? 'has-count' : ''}">${mediaGrades['9'] || '-'}</td>
                                 <td class="grade-cell ${mediaGrades['10'] > 0 ? 'has-count' : ''}">${mediaGrades['10'] || '-'}</td>
+                                <td class="total-cell">${mediaTotal}</td>
                             </tr>
                         `;
 
@@ -1536,7 +1536,6 @@
                                                 <span class="variation-type-label">${variation.type}</span>
                                             </div>
                                         </td>
-                                        <td class="total-cell">${varTotal}</td>
                                         <td class="grade-cell ${varGrades['1'] > 0 ? 'has-count' : ''}">${varGrades['1'] || '-'}</td>
                                         <td class="grade-cell ${varGrades['2'] > 0 ? 'has-count' : ''}">${varGrades['2'] || '-'}</td>
                                         <td class="grade-cell ${varGrades['3'] > 0 ? 'has-count' : ''}">${varGrades['3'] || '-'}</td>
@@ -1547,6 +1546,7 @@
                                         <td class="grade-cell ${varGrades['8'] > 0 ? 'has-count' : ''}">${varGrades['8'] || '-'}</td>
                                         <td class="grade-cell ${varGrades['9'] > 0 ? 'has-count' : ''}">${varGrades['9'] || '-'}</td>
                                         <td class="grade-cell ${varGrades['10'] > 0 ? 'has-count' : ''}">${varGrades['10'] || '-'}</td>
+                                        <td class="total-cell">${varTotal}</td>
                                     </tr>
                                 `;
                             });
