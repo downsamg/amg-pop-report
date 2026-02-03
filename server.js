@@ -62,24 +62,6 @@ app.get('/api/albums', async (req, res) => {
 });
 
 // Get all unique itemTypes
-app.get('/api/item-types', async (req, res) => {
-  try {
-    const types = await db.collection('items').distinct('itemType');
-    const filteredTypes = types.filter(t => t && t.trim() !== '');
-    
-    res.json({
-      success: true,
-      data: filteredTypes.sort()
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
-});
-
-// Smart search endpoint - searches both artist and album
 app.get('/api/search', async (req, res) => {
   try {
     const { q, itemType } = req.query;
@@ -93,34 +75,28 @@ app.get('/api/search', async (req, res) => {
 
     const searchTerm = q.trim();
     
-    // Search patterns
     const searchPatterns = {
       $or: [
-        // Artist matches
         { artistPopReport: new RegExp(`^${searchTerm}$`, 'i') },
         { artistPopReport: new RegExp(`^The ${searchTerm}$`, 'i') },
         { artistPopReport: new RegExp(`\\b${searchTerm}\\b`, 'i') },
         { artistPopReport: { $regex: searchTerm, $options: 'i' } },
-        // Album matches
         { albumPopReport: new RegExp(`^${searchTerm}$`, 'i') },
         { albumPopReport: new RegExp(`\\b${searchTerm}\\b`, 'i') },
         { albumPopReport: { $regex: searchTerm, $options: 'i' } }
       ]
     };
 
-    // Get available itemTypes for this search
     const availableItemTypes = await db.collection('items').distinct('itemType', searchPatterns);
-    const filteredItemTypes = availableItemTypes.filter(t => t && t.trim() !== '');
+    const filteredItemTypes = availableItemTypes.filter(t => t && t.trim() !== '' && t !== 'Unknown');
     
-    // Build match query
     const matchQuery = { ...searchPatterns };
 
-    // Add itemType filter if provided
     if (itemType && itemType !== 'Total') {
       matchQuery.itemType = itemType;
     }
 
-    // Aggregate to get results grouped by artist-album combination
+    // Group by: Album -> Series -> Variation
     const results = await db.collection('items').aggregate([
       {
         $match: matchQuery
@@ -130,10 +106,28 @@ app.get('/api/search', async (req, res) => {
           _id: {
             album: '$albumPopReport',
             artist: '$artistPopReport',
-            series: '$series'
+            series: '$series',
+            variation: '$variation'
           },
           grades: { $push: '$masterGrade' },
           count: { $sum: 1 }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            album: '$_id.album',
+            artist: '$_id.artist',
+            series: '$_id.series'
+          },
+          variations: {
+            $push: {
+              type: '$_id.variation',
+              grades: '$grades',
+              count: '$count'
+            }
+          },
+          seriesGrades: { $push: '$grades' }
         }
       },
       {
@@ -145,11 +139,11 @@ app.get('/api/search', async (req, res) => {
           mediaTypes: {
             $push: {
               type: '$_id.series',
-              grades: '$grades',
-              count: '$count'
+              variations: '$variations',
+              grades: '$seriesGrades'
             }
           },
-          allGrades: { $push: '$grades' }
+          allGrades: { $push: '$seriesGrades' }
         }
       },
       {
@@ -162,20 +156,71 @@ app.get('/api/search', async (req, res) => {
               as: 'media',
               in: {
                 type: '$$media.type',
-                total: '$$media.count',
-                gradeDistribution: {
-                  $arrayToObject: {
+                variations: {
+                  $map: {
+                    input: '$$media.variations',
+                    as: 'variation',
+                    in: {
+                      type: '$$variation.type',
+                      total: '$$variation.count',
+                      gradeDistribution: {
+                        $arrayToObject: {
+                          $map: {
+                            input: { $range: [1, 11] },
+                            as: 'grade',
+                            in: {
+                              k: { $toString: '$$grade' },
+                              v: {
+                                $size: {
+                                  $filter: {
+                                    input: '$$variation.grades',
+                                    as: 'g',
+                                    cond: { $eq: ['$$g', '$$grade'] }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                total: { 
+                  $sum: {
                     $map: {
-                      input: { $range: [1, 11] },
-                      as: 'grade',
-                      in: {
-                        k: { $toString: '$$grade' },
-                        v: {
-                          $size: {
-                            $filter: {
-                              input: '$$media.grades',
-                              as: 'g',
-                              cond: { $eq: ['$$g', '$$grade'] }
+                      input: '$$media.variations',
+                      as: 'v',
+                      in: '$$v.count'
+                    }
+                  }
+                },
+                gradeDistribution: {
+                  $let: {
+                    vars: {
+                      flatGrades: {
+                        $reduce: {
+                          input: '$$media.grades',
+                          initialValue: [],
+                          in: { $concatArrays: ['$$value', '$$this'] }
+                        }
+                      }
+                    },
+                    in: {
+                      $arrayToObject: {
+                        $map: {
+                          input: { $range: [1, 11] },
+                          as: 'grade',
+                          in: {
+                            k: { $toString: '$$grade' },
+                            v: {
+                              $size: {
+                                $filter: {
+                                  input: '$$flatGrades',
+                                  as: 'g',
+                                  cond: { $eq: ['$$g', '$$grade'] }
+                                }
+                              }
                             }
                           }
                         }
@@ -186,13 +231,35 @@ app.get('/api/search', async (req, res) => {
               }
             }
           },
-          totalItems: { $sum: '$mediaTypes.count' },
+          totalItems: {
+            $sum: {
+              $map: {
+                input: '$mediaTypes',
+                as: 'media',
+                in: {
+                  $sum: {
+                    $map: {
+                      input: '$$media.variations',
+                      as: 'v',
+                      in: '$$v.count'
+                    }
+                  }
+                }
+              }
+            }
+          },
           gradeDistribution: {
             $let: {
               vars: {
                 flatGrades: {
                   $reduce: {
-                    input: '$allGrades',
+                    input: {
+                      $reduce: {
+                        input: '$allGrades',
+                        initialValue: [],
+                        in: { $concatArrays: ['$$value', '$$this'] }
+                      }
+                    },
                     initialValue: [],
                     in: { $concatArrays: ['$$value', '$$this'] }
                   }
