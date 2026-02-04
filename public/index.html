@@ -462,15 +462,26 @@
             font-weight: 600;
         }
 
+        tbody tr.detail-row.media-row-no-expand {
+            background: #E0F7FA;
+            cursor: default;
+        }
+
+        tbody tr.detail-row.media-row-no-expand:hover {
+            background: #E0F7FA;
+            transform: none;
+            box-shadow: none;
+        }
+
         tbody tr.detail-row.variation-row {
-            background: #FFF9C4;
+            background: white;
             display: none;
         }
 
         tbody tr.detail-row.variation-row td {
             padding-left: 40px;
             font-size: 13px;
-            border-bottom: 1px solid #FFF59D;
+            border-bottom: 1px solid #eee;
         }
 
         tbody tr.detail-row.variation-row .grade-cell.has-count {
@@ -515,7 +526,7 @@
         }
 
         .variation-type-label {
-            color: #F57F17;
+            color: #666;
             font-style: italic;
             font-weight: 500;
             font-size: 13px;
@@ -1498,12 +1509,21 @@
                         const mediaGrades = media.gradeDistribution;
                         const mediaTotal = media.total || 0;
                         
+                        // Check if this media type has any variations
+                        const hasVariations = media.variations && 
+                                             media.variations.some(v => v.type && v.type.trim() !== '');
+                        
+                        // If no variations, make row non-clickable
+                        const rowClass = hasVariations ? 'detail-row media-row' : 'detail-row media-row-no-expand';
+                        const onClick = hasVariations ? `onclick="event.stopPropagation(); toggleMediaDetails('${index}-${mediaIndex}')"` : '';
+                        const cursorStyle = hasVariations ? '' : 'cursor: default;';
+                        
                         desktopHtml += `
-                            <tr class="detail-row media-row" data-detail-for="${index}" data-media-index="${index}-${mediaIndex}" onclick="event.stopPropagation(); toggleMediaDetails('${index}-${mediaIndex}')">
+                            <tr class="${rowClass}" data-detail-for="${index}" data-media-index="${index}-${mediaIndex}" ${onClick}>
                                 <td>
                                     <div style="padding-left: 20px; display: flex; align-items: center; gap: 10px;">
-                                        <span class="expand-icon" id="media-icon-${index}-${mediaIndex}">▶</span>
-                                        <span class="media-type-label">${media.type}</span>
+                                        ${hasVariations ? `<span class="expand-icon" id="media-icon-${index}-${mediaIndex}">▶</span>` : '<span style="width: 20px;"></span>'}
+                                        <span class="media-type-label" style="${cursorStyle}">${media.type}</span>
                                     </div>
                                 </td>
                                 <td class="grade-cell ${mediaGrades['1'] > 0 ? 'has-count' : ''}">${mediaGrades['1'] || '-'}</td>
@@ -1520,8 +1540,8 @@
                             </tr>
                         `;
 
-                        // Desktop: Variation rows (Test Pressing, Reissue, etc.)
-                        if (media.variations) {
+                        // Desktop: Variation rows (only if variations exist)
+                        if (hasVariations) {
                             media.variations.forEach(variation => {
                                 // Skip empty variations
                                 if (!variation.type || variation.type.trim() === '') return;

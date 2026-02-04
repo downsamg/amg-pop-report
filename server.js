@@ -25,15 +25,22 @@ async function connectDB() {
 
 connectDB();
 
+// Helper function to escape special regex characters
+function escapeRegex(string) {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 // Get all unique artists
 app.get('/api/artists', async (req, res) => {
   try {
     const artists = await db.collection('items').distinct('artistPopReport');
-    const filteredArtists = artists.filter(a => a && a.trim() !== '');
+    const filteredArtists = artists
+      .filter(a => a && typeof a === 'string' && a.trim() !== '')
+      .sort();
     
     res.json({
       success: true,
-      data: filteredArtists.sort()
+      data: filteredArtists
     });
   } catch (error) {
     res.status(500).json({
@@ -47,11 +54,13 @@ app.get('/api/artists', async (req, res) => {
 app.get('/api/albums', async (req, res) => {
   try {
     const albums = await db.collection('items').distinct('albumPopReport');
-    const filteredAlbums = albums.filter(a => a && a.trim() !== '');
+    const filteredAlbums = albums
+      .filter(a => a && typeof a === 'string' && a.trim() !== '')
+      .sort();
     
     res.json({
       success: true,
-      data: filteredAlbums.sort()
+      data: filteredAlbums
     });
   } catch (error) {
     res.status(500).json({
@@ -62,6 +71,26 @@ app.get('/api/albums', async (req, res) => {
 });
 
 // Get all unique itemTypes
+app.get('/api/item-types', async (req, res) => {
+  try {
+    const types = await db.collection('items').distinct('itemType');
+    const filteredTypes = types
+      .filter(t => t && typeof t === 'string' && t.trim() !== '')
+      .sort();
+    
+    res.json({
+      success: true,
+      data: filteredTypes
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Smart search endpoint - searches both artist and album
 app.get('/api/search', async (req, res) => {
   try {
     const { q, itemType } = req.query;
@@ -74,21 +103,26 @@ app.get('/api/search', async (req, res) => {
     }
 
     const searchTerm = q.trim();
+    const escapedTerm = escapeRegex(searchTerm); // Escape special characters
     
     const searchPatterns = {
       $or: [
-        { artistPopReport: new RegExp(`^${searchTerm}$`, 'i') },
-        { artistPopReport: new RegExp(`^The ${searchTerm}$`, 'i') },
-        { artistPopReport: new RegExp(`\\b${searchTerm}\\b`, 'i') },
-        { artistPopReport: { $regex: searchTerm, $options: 'i' } },
-        { albumPopReport: new RegExp(`^${searchTerm}$`, 'i') },
-        { albumPopReport: new RegExp(`\\b${searchTerm}\\b`, 'i') },
-        { albumPopReport: { $regex: searchTerm, $options: 'i' } }
+        // Artist matches
+        { artistPopReport: new RegExp(`^${escapedTerm}$`, 'i') },
+        { artistPopReport: new RegExp(`^The ${escapedTerm}$`, 'i') },
+        { artistPopReport: new RegExp(`\\b${escapedTerm}\\b`, 'i') },
+        { artistPopReport: { $regex: escapedTerm, $options: 'i' } },
+        // Album matches
+        { albumPopReport: new RegExp(`^${escapedTerm}$`, 'i') },
+        { albumPopReport: new RegExp(`\\b${escapedTerm}\\b`, 'i') },
+        { albumPopReport: { $regex: escapedTerm, $options: 'i' } }
       ]
     };
 
     const availableItemTypes = await db.collection('items').distinct('itemType', searchPatterns);
-    const filteredItemTypes = availableItemTypes.filter(t => t && t.trim() !== '' && t !== 'Unknown');
+    const filteredItemTypes = availableItemTypes
+      .filter(t => t && typeof t === 'string' && t.trim() !== '' && t !== 'Unknown')
+      .sort();
     
     const matchQuery = { ...searchPatterns };
 
