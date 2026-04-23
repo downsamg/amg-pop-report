@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const client = await clientPromise;
+    const client = await clientPromise();
     const db = client.db('grading_db');
 
     // Total searches today (unique search terms by day)
