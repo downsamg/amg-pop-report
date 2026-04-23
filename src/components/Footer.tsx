@@ -34,9 +34,9 @@ export default function Footer() {
             <p className="font-theme-font-bold uppercase text-[14px] lg:text-base">Connect —</p>
             <div className="flex flex-col gap-1 lg:gap-2">
               <a href={`${BASE}/news`} className="text-[16px] lg:text-[24px] font-theme-font-light hover:underline">News</a>
-              <a href="https://www.instagram.com/audiomediagrading" target="_blank" rel="noopener noreferrer" className="text-[16px] lg:text-[24px] font-theme-font-light hover:underline">Instagram</a>
-              <a href="https://x.com/audiomediagrading" target="_blank" rel="noopener noreferrer" className="text-[16px] lg:text-[24px] font-theme-font-light hover:underline">X</a>
-              <a href="https://www.tiktok.com/@audiomediagrading" target="_blank" rel="noopener noreferrer" className="text-[16px] lg:text-[24px] font-theme-font-light hover:underline">Tiktok</a>
+              <a href="https://www.instagram.com/amgrading" target="_blank" rel="noopener noreferrer" className="text-[16px] lg:text-[24px] font-theme-font-light hover:underline">Instagram</a>
+              <a href="https://x.com/amgrading" target="_blank" rel="noopener noreferrer" className="text-[16px] lg:text-[24px] font-theme-font-light hover:underline">X</a>
+              <a href="https://www.tiktok.com/@amgrading" target="_blank" rel="noopener noreferrer" className="text-[16px] lg:text-[24px] font-theme-font-light hover:underline">Tiktok</a>
               <a href={`${BASE}/careers`} className="text-[16px] lg:text-[24px] font-theme-font-light hover:underline">Careers</a>
               <a href={`${BASE}/contact-us`} className="text-[16px] lg:text-[24px] font-theme-font-light hover:underline">Contact</a>
             </div>
